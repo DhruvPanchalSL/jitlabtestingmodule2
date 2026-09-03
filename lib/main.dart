@@ -66,7 +66,7 @@ class _NameScreenState extends State<NameScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flutter Screen'),
+        title: const Text('Flutter Screen Test'),
       ),
       body: Center(
         child: Padding(
