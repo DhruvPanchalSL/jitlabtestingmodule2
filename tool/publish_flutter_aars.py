@@ -122,6 +122,70 @@ for artifact_name in ("flutter_debug", "flutter_release"):
         )
     )
 
+# --- Aggregator POM for the bare repo coordinate (com.github.User:Repo:Version) ---
+# JitPack's multi-module docs describe generating a root artifact named after
+# the repo itself, separate from the individual module artifacts above. We
+# publish it manually here so JitPack's discovery step has something real to
+# find under the bare "com.github.User:Repo:Version" coordinate.
+aggregator_group = github_group  # e.g. com.github.DhruvPanchalSL (no repo suffix)
+aggregator_artifact = repository_name  # e.g. jitlabtestingmodule2
+
+aggregator_dir = os.path.join(
+    maven_repository_root,
+    *aggregator_group.split("."),
+    aggregator_artifact,
+    release_version,
+)
+
+if not os.path.isdir(aggregator_dir):
+    os.makedirs(aggregator_dir)
+
+aggregator_pom_path = os.path.join(
+    aggregator_dir,
+    "{}-{}.pom".format(aggregator_artifact, release_version),
+)
+
+dependency_xml = "".join(
+    """
+    <dependency>
+      <groupId>{group}</groupId>
+      <artifactId>{artifact}</artifactId>
+      <version>{version}</version>
+      <type>aar</type>
+    </dependency>""".format(
+        group=published_group,
+        artifact=module_name,
+        version=release_version,
+    )
+    for module_name in ("flutter_debug", "flutter_release")
+)
+
+aggregator_pom_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>{group}</groupId>
+  <artifactId>{artifact}</artifactId>
+  <version>{version}</version>
+  <packaging>pom</packaging>
+  <dependencies>{dependencies}
+  </dependencies>
+</project>
+""".format(
+    group=aggregator_group,
+    artifact=aggregator_artifact,
+    version=release_version,
+    dependencies=dependency_xml,
+)
+
+with open(aggregator_pom_path, "w", encoding="utf-8") as aggregator_file:
+    aggregator_file.write(aggregator_pom_xml)
+
+print("Published aggregator {}:{}:{}".format(
+    aggregator_group,
+    aggregator_artifact,
+    release_version,
+))
+
 # Keep one canonical copy in ~/.m2 for JitPack's artifact discovery. The
 # project-directory Maven repository is generated and no longer needed here.
 shutil.rmtree(generated_repository)
